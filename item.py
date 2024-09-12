@@ -55,3 +55,22 @@ class Inventory:
     def display_inventory(self):
         """Display the current inventory."""
         print("Inventory:", [item.item_type for item in self.items])
+
+
+COIN_WIDTH = 20
+COIN_HEIGHT = 20
+
+class Coin:
+    def __init__(self, x, y, value=10):
+        """Initialize the coin at a given position with a specific value."""
+        self.rect = pygame.Rect(x, y, COIN_WIDTH, COIN_HEIGHT)
+        self.value = value  # The value of the coin (how many coins the player collects)
+
+    def draw(self, screen, graphics):
+        """Draw the coin using the graphics module."""
+        graphics.draw_coin(screen, self)
+
+    def collect(self, player):
+        """Add the coin's value to the player's currency when collected."""
+        player.currency.add_coins(self.value)
+        print(f"Collected {self.value} coins!")

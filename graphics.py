@@ -11,7 +11,11 @@ class Graphics:
             'Health Potion': pygame.image.load("assets/health_potion.png").convert_alpha(),
             'Attack Boost': pygame.image.load("assets/attack_boost.png").convert_alpha(),
             'Defense Boost': pygame.image.load("assets/defense_boost.png").convert_alpha(),
+            'Coin': pygame.image.load("assets/coin.png").convert_alpha()
         }
+        self.store_sprite = pygame.image.load("assets/store.png").convert_alpha()
+        self.store_button_sprite = pygame.image.load("assets/store_button.png").convert_alpha()
+        
 
     def draw_player(self, screen, player):
         """Draw the player sprite at the player's current position."""
@@ -20,6 +24,10 @@ class Graphics:
     def draw_enemy(self, screen, enemy):
         """Draw the enemy sprite at the enemy's current position."""
         screen.blit(self.enemy_sprite, (enemy.rect.x, enemy.rect.y))
+
+    def draw_coin(self, screen, coin):
+        """Draw the enemy sprite at the enemy's current position."""
+        screen.blit(self.item_sprites['Coin'], (coin.rect.x, coin.rect.y))
 
     def draw_item(self, screen, item):
         """Draw the item sprite at the item's current position."""

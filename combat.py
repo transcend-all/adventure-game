@@ -6,10 +6,10 @@ class CombatSystem:
         """Initialize the combat system with a reference to the player."""
         self.player = player
 
-    def player_attack(self, enemy):
+    def player_attack(self, enemy, level_manager):
         """Handle the player attacking an enemy."""
         damage = self.calculate_damage(self.player.attack_power)
-        if enemy.take_damage(damage):
+        if enemy.take_damage(damage, level_manager):
             print(f"Enemy defeated! Player dealt {damage} damage.")
         else:
             print(f"Player dealt {damage} damage to the enemy. Enemy's remaining health: {enemy.health}")

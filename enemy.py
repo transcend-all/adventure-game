@@ -32,18 +32,27 @@ class Enemy:
         """Placeholder for future enemy AI behavior."""
         pass
 
-    def take_damage(self, amount):
-        """Reduces enemy health by a specific amount, and removes enemy if health is <= 0."""
+    def take_damage(self, amount, level_manager):
+        """Reduces health and triggers death effects."""
         self.health -= amount
         if self.health <= 0:
-            print(f"Enemy defeated at position ({self.rect.x}, {self.rect.y})")
-            return True  # Indicates the enemy has been killed
-        return False  # Enemy still alive
+            print(f"Enemy defeated at ({self.rect.x}, {self.rect.y})")
+            level_manager.spawn_coins(self.rect.x, self.rect.y)  # Spawn coins on death
+            return True  # Enemy is dead
+        return False
+
+    # def take_damage(self, amount):
+    #     """Reduces enemy health by a specific amount, and removes enemy if health is <= 0."""
+    #     self.health -= amount
+    #     if self.health <= 0:
+    #         print(f"Enemy defeated at position ({self.rect.x}, {self.rect.y})")
+    #         return True  # Indicates the enemy has been killed
+    #     return False  # Enemy still alive
 
     def is_alive(self):
         """Check if the enemy is still alive."""
         return self.health > 0
 
-    def draw(self, screen):
-        """Draw the enemy on the screen."""
-        pygame.draw.rect(screen, ENEMY_COLOR, self.rect)
+    def draw(self, screen, graphics):
+        """Draw the enemy using the enemy sprite."""
+        graphics.draw_enemy(screen, self)  # Call graphics module to draw sprite

@@ -8,10 +8,12 @@ from hud import HUD
 from combat import CombatSystem
 from currency import Currency
 from item import Inventory
+from item import Coin
 from graphics import Graphics
 from monetization import Monetization
 from data_pipeline import EventStream
 from data_privacy import DataPrivacy
+from store import Store
 
 # Initialize Pygame
 pygame.init()
@@ -31,14 +33,14 @@ class GameEngine:
         pygame.display.set_caption('Animal Kingdom: Quest for the Golden Artifact')
 
         # Initialize the game systems
-        self.player = Player("Explorer")
         self.world = World(SCREEN_WIDTH, SCREEN_HEIGHT)
-        self.level_manager = LevelManager(self.world)
         self.inventory = Inventory()
         self.currency = Currency()
+        self.player = Player("Explorer", self.currency)
         self.hud = HUD(self.screen, self.player, self.currency)
         self.combat_system = CombatSystem(self.player)
         self.graphics = Graphics()
+        self.level_manager = LevelManager(self.world, self.graphics)
         self.event_stream = EventStream()
         self.data_privacy = DataPrivacy()
         self.monetization_system = Monetization(self.currency)
@@ -67,10 +69,12 @@ class GameEngine:
             self.level_manager.update()
             self.event_stream.send_event("player_moved", {"player_position": (self.player.rect.x, self.player.rect.y)})
 
+            self.level_manager.collect_coins(self.player)
+
             # Simulate combat between player and enemies
             for enemy in self.level_manager.enemies:
                 if self.player.rect.colliderect(enemy.rect):
-                    self.combat_system.player_attack(enemy)
+                    self.combat_system.player_attack(enemy, self.level_manager)
                     if not enemy.is_alive():
                         self.level_manager.enemies.remove(enemy)
 
@@ -79,6 +83,7 @@ class GameEngine:
         self.screen.fill((255, 255, 255))  # Clear the screen with a white background
         self.level_manager.render(self.screen)
         self.graphics.draw_player(self.screen, self.player)
+        # self.graphics.draw_enemy(self.screen, self.enemy)
 
         # Draw HUD (health bar, coins)
         self.hud.draw()

@@ -14,6 +14,8 @@ class HUD:
         self.player = player
         self.currency = currency
         self.font = pygame.font.SysFont(None, FONT_SIZE)
+        # self.store_button = pygame.image.load(store_button_image).convert_alpha()
+        # self.store_button_rect = self.store_button.get_rect(topleft=(700, 20))
 
     def draw_health_bar(self):
         """Draw the player's health bar on the screen."""
@@ -35,3 +37,6 @@ class HUD:
         """Draw the entire HUD on the screen (health bar, coins, etc.)."""
         self.draw_health_bar()
         self.draw_coins()
+        # self.screen.blit(self.store_button, self.store_button_rect)
+
+

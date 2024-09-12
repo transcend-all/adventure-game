@@ -8,13 +8,14 @@ PLAYER_HEIGHT = 50
 PLAYER_SPEED = 5
 
 class Player:
-    def __init__(self, name):
+    def __init__(self, name, currency):
         self.name = name
         self.rect = pygame.Rect(100, 100, PLAYER_WIDTH, PLAYER_HEIGHT)  # Player's rectangle (x, y, width, height)
         self.speed = PLAYER_SPEED  # Movement speed
         self.health = 100  # Player's health
         self.attack_power = 10  # Player's base attack power
         self.inventory = []  # Player inventory to store items
+        self.currency = currency
 
     def handle_input(self, world):
         """Handles player movement based on keyboard input and checks for collisions with the world."""
