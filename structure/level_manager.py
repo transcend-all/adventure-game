@@ -1,8 +1,8 @@
 # level_manager.py
-from enemy import Enemy
+from characters.enemy import Enemy
 import pygame
 import random
-from item import Coin
+from monetization.item import Coin
 
 class LevelManager:
     def __init__(self, world, graphics):

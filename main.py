@@ -1,19 +1,19 @@
 # game_engine.py
 import pygame
 import sys
-from player import Player
-from world import World
-from level_manager import LevelManager
-from hud import HUD
-from combat import CombatSystem
-from currency import Currency
-from item import Inventory
-from item import Coin
-from graphics import Graphics
-from monetization import Monetization
-from data_pipeline import EventStream
-from data_privacy import DataPrivacy
-from store import Store
+from characters.player import Player
+from structure.world import World
+from structure.level_manager import LevelManager
+from structure.hud import HUD
+from structure.combat import CombatSystem
+from structure.currency import Currency
+from monetization.item import Inventory
+from monetization.item import Coin
+from structure.graphics import Graphics
+from monetization.monetization import Monetization
+from data.data_pipeline import EventStream
+from data.data_privacy import DataPrivacy
+from monetization.store import Store
 
 # Initialize Pygame
 pygame.init()
@@ -30,7 +30,7 @@ class GameEngine:
     def __init__(self):
         # Create the game window
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        pygame.display.set_caption('Animal Kingdom: Quest for the Golden Artifact')
+        pygame.display.set_caption('Quest for the Golden Artifact')
 
         # Initialize the game systems
         self.world = World(SCREEN_WIDTH, SCREEN_HEIGHT)
