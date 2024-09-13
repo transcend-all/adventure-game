@@ -41,14 +41,6 @@ class Enemy:
             return True  # Enemy is dead
         return False
 
-    # def take_damage(self, amount):
-    #     """Reduces enemy health by a specific amount, and removes enemy if health is <= 0."""
-    #     self.health -= amount
-    #     if self.health <= 0:
-    #         print(f"Enemy defeated at position ({self.rect.x}, {self.rect.y})")
-    #         return True  # Indicates the enemy has been killed
-    #     return False  # Enemy still alive
-
     def is_alive(self):
         """Check if the enemy is still alive."""
         return self.health > 0
