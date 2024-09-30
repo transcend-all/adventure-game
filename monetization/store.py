@@ -1,9 +1,14 @@
 # store.py
 
+import pygame
+
+
 class Store:
     def __init__(self, player):
         """Initialize the store with the player and available items."""
         self.player = player
+        self.purchase_sound = pygame.mixer.Sound('sounds/purchase_item.wav')
+        self.purchase_sound.set_volume(0.5)
         self.items_for_sale = [
             HealthPotion(),
             AttackBoost(),
@@ -22,6 +27,7 @@ class Store:
             item = self.items_for_sale[item_index]
             if self.player.currency.coins >= item.price:
                 self.player.currency.spend_coins(item.price)  # Deduct coins
+                self.purchase_sound.play()
                 self.player.inventory.append(item)  # Add the item to the player's inventory
                 print(f"{item.name} purchased for {item.price} coins! It has been added to your inventory.")
             else:

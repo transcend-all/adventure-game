@@ -17,6 +17,7 @@ from monetization.store import Store
 
 # Initialize Pygame
 pygame.init()
+pygame.mixer.init()
 
 # Screen dimensions and FPS
 SCREEN_WIDTH = 800
@@ -48,6 +49,12 @@ class GameEngine:
         # Game state
         self.running = True
         self.paused = False
+        self.sound_on = True  # Variable to track sound state
+
+        # Load and play background music
+        pygame.mixer.music.load('sounds/background_music.mp3')
+        pygame.mixer.music.set_volume(0.5)
+        pygame.mixer.music.play(-1)  # -1 means the music loops indefinitely
 
     def handle_events(self):
         """Handle input events (keyboard, quitting)."""
@@ -57,10 +64,28 @@ class GameEngine:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_p:
                     self.paused = not self.paused  # Toggle pause
+                    if self.paused:
+                        pygame.mixer.music.pause()
+                    else:
+                        pygame.mixer.music.unpause()
                 if event.key == pygame.K_m:
                     # Simulate purchasing coins when the player presses 'M'
                     self.monetization_system.show_coin_packages()
                     self.monetization_system.purchase_coins('small', payment_method='usd')
+                if event.key == pygame.K_s:
+                    # Toggle sound on/off when 'S' is pressed
+                    self.toggle_sound()
+
+    def toggle_sound(self):
+        """Toggle the sound on or off."""
+        if self.sound_on:
+            pygame.mixer.music.set_volume(0)
+            self.sound_on = False
+            # Optionally notify other classes to mute their sound effects
+        else:
+            pygame.mixer.music.set_volume(0.5)
+            self.sound_on = True
+            # Optionally notify other classes to unmute their sound effects
 
     def update(self):
         """Update game state (player, level, combat, etc.)."""
@@ -83,7 +108,6 @@ class GameEngine:
         self.screen.fill((255, 255, 255))  # Clear the screen with a white background
         self.level_manager.render(self.screen)
         self.graphics.draw_player(self.screen, self.player)
-        # self.graphics.draw_enemy(self.screen, self.enemy)
 
         # Draw HUD (health bar, coins)
         self.hud.draw()
@@ -102,9 +126,9 @@ class GameEngine:
             clock.tick(FPS)
 
         # Quit the game
+        pygame.mixer.quit()
         pygame.quit()
         sys.exit()
-
 
 # Entry point to start the game
 if __name__ == "__main__":

@@ -16,9 +16,14 @@ class Item:
         """Initialize the item with a type and position on the world map."""
         self.item_type = item_type
         self.rect = pygame.Rect(x, y, ITEM_WIDTH, ITEM_HEIGHT)  # Position of the item on the map
+        self.pickup_sound = pygame.mixer.Sound('sounds/pickup_item.wav')
+        self.pickup_sound.set_volume(0.5)
+
     
     def apply_effect(self, player):
         """Applies the effect of the item to the player."""
+        self.pickup_sound.play()
+
         if self.item_type == HEALTH_POTION:
             player.health = min(100, player.health + 20)  # Heal the player by 20 points, max health is 100
             print(f"Player health increased to {player.health} by using a {self.item_type}.")
@@ -65,6 +70,8 @@ class Coin:
         """Initialize the coin at a given position with a specific value."""
         self.rect = pygame.Rect(x, y, COIN_WIDTH, COIN_HEIGHT)
         self.value = value  # The value of the coin (how many coins the player collects)
+        self.collect_sound = pygame.mixer.Sound('sounds/coin_collect.wav')
+        self.collect_sound.set_volume(0.5)
 
     def draw(self, screen, graphics):
         """Draw the coin using the graphics module."""
@@ -73,4 +80,5 @@ class Coin:
     def collect(self, player):
         """Add the coin's value to the player's currency when collected."""
         player.currency.add_coins(self.value)
+        self.collect_sound.play()
         print(f"Collected {self.value} coins!")

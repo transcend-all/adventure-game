@@ -1,4 +1,5 @@
 # player.py
+from shutil import move
 import pygame
 
 # Constants for player settings
@@ -16,27 +17,38 @@ class Player:
         self.attack_power = 10  # Player's base attack power
         self.inventory = []  # Player inventory to store items
         self.currency = currency
+        self.move_sound = pygame.mixer.Sound('sounds/player_move.wav')
+        self.move_sound.set_volume(0.3)
+        self.attack_sound = pygame.mixer.Sound('sounds/player_attack.wav')
+        self.attack_sound.set_volume(0.5)
+        self.damage_sound = pygame.mixer.Sound('sounds/player_damage.wav')
+        self.damage_sound.set_volume(0.5)
+        self.pickup_sound = pygame.mixer.Sound('sounds/pickup_item.wav')
+        self.pickup_sound.set_volume(0.5)
 
     def handle_input(self, world):
-        """Handles player movement based on keyboard input and checks for collisions with the world."""
-        keys = pygame.key.get_pressed()  # Get current state of keys
-        new_x, new_y = self.rect.x, self.rect.y  # Track the player's new position
+            """Handles player movement based on keyboard input and checks for collisions with the world."""
+            keys = pygame.key.get_pressed()
+            new_x, new_y = self.rect.x, self.rect.y
+            moved = False  # Flag to check if the player has moved
 
-        # Movement based on key input
-        if keys[pygame.K_LEFT]:
-            new_x -= self.speed
-        if keys[pygame.K_RIGHT]:
-            new_x += self.speed
-        if keys[pygame.K_UP]:
-            new_y -= self.speed
-        if keys[pygame.K_DOWN]:
-            new_y += self.speed
+            # Movement based on key input
+            if keys[pygame.K_LEFT]:
+                new_x -= self.speed
+            if keys[pygame.K_RIGHT]:
+                new_x += self.speed
+            if keys[pygame.K_UP]:
+                new_y -= self.speed
+            if keys[pygame.K_DOWN]:
+                new_y += self.speed
 
-        # Check if new position is valid (not colliding with unwalkable areas in the world)
-        if world.is_walkable(new_x, self.rect.y):
-            self.rect.x = new_x
-        if world.is_walkable(self.rect.x, new_y):
-            self.rect.y = new_y
+            # Check if new position is valid (not colliding with unwalkable areas in the world)
+            if world.is_walkable(new_x, self.rect.y):
+                self.rect.x = new_x
+            if world.is_walkable(self.rect.x, new_y):
+                self.rect.y = new_y
+            if moved:
+                self.move_sound.play()
 
     def draw(self, screen):
         """Draws the player on the screen."""
@@ -45,6 +57,7 @@ class Player:
     def take_damage(self, amount):
         """Reduces player health by a specific amount."""
         self.health -= amount
+        self.damage_sound.play()
         if self.health <= 0:
             print(f"{self.name} has died!")
 

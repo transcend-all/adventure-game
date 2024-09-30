@@ -16,6 +16,8 @@ class Enemy:
         self.health = ENEMY_BASE_HEALTH + (level * 10)  # Enemy health scales with level
         self.speed = ENEMY_BASE_SPEED + (level * 0.5)  # Enemy speed scales with level
         self.attack_power = 5 + level  # Added attack power for enemy
+        self.death_sound = pygame.mixer.Sound('sounds/enemy_death.wav')
+        self.death_sound.set_volume(0.5)
 
     def move_towards_player(self, player):
         """Move the enemy towards the player's position."""
@@ -37,6 +39,7 @@ class Enemy:
         self.health -= amount
         if self.health <= 0:
             print(f"Enemy defeated at ({self.rect.x}, {self.rect.y})")
+            self.death_sound.play()
             level_manager.spawn_coins(self.rect.x, self.rect.y)  # Spawn coins on death
             return True  # Enemy is dead
         return False
