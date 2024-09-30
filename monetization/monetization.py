@@ -1,9 +1,14 @@
 # monetization.py
 
+import pygame
+
+
 class Monetization:
     def __init__(self, currency):
         """Initialize the monetization system with a reference to the player's currency."""
         self.currency = currency
+        self.purchase_sound = pygame.mixer.Sound('sounds/purchase_success.wav')
+        self.purchase_sound.set_volume(0.5)
 
         # Pricing for coin purchases (in USD or equivalent)
         self.coin_packages = {
@@ -31,11 +36,13 @@ class Monetization:
                 print(f"Processing payment of ${package['price_usd']} for {package['coins']} coins...")
                 # Simulate a successful payment transaction
                 self.currency.add_coins(package['coins'])
+                self.purchase_sound.play()
                 print(f"Successfully purchased {package['coins']} coins!")
             elif payment_method == 'crypto' and 'price_crypto' in package:
                 print(f"Processing cryptocurrency payment of {package['price_crypto']} for {package['coins']} coins...")
                 # Simulate a successful cryptocurrency transaction
                 self.currency.add_coins(package['coins'])
+                self.purchase_sound.play()
                 print(f"Successfully purchased {package['coins']} coins!")
             else:
                 print(f"Invalid payment method or package for {package_name}.")
