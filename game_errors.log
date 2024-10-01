@@ -1,0 +1,40 @@
+2024-10-01 19:37:53,380 ERROR:Failed to update user progress: relation "users" does not exist
+LINE 1: UPDATE users SET level = 2, coins = 28 WHERE id = 1
+               ^
+
+2024-10-01 19:37:56,846 ERROR:Failed to update user progress: relation "users" does not exist
+LINE 1: UPDATE users SET level = 3, coins = 77 WHERE id = 1
+               ^
+
+2024-10-01 19:37:58,998 ERROR:Failed to save progress: relation "users" does not exist
+LINE 1: UPDATE users SET level = 3, coins = 86 WHERE id = 1
+               ^
+
+2024-10-01 19:45:19,181 ERROR:Failed to save progress: relation "users" does not exist
+LINE 1: UPDATE users SET level = 1, coins = 18 WHERE id = 1
+               ^
+
+2024-10-01 20:22:55,627 ERROR:Failed to update user progress: relation "users" does not exist
+LINE 1: UPDATE users SET level = 2, coins = 42 WHERE id = 1
+               ^
+
+2024-10-01 20:23:08,233 ERROR:Failed to update user progress: relation "users" does not exist
+LINE 1: UPDATE users SET level = 3, coins = 89 WHERE id = 1
+               ^
+
+2024-10-01 20:23:16,131 ERROR:Failed to update user progress: relation "users" does not exist
+LINE 1: UPDATE users SET level = 4, coins = 155 WHERE id = 1
+               ^
+
+2024-10-01 20:23:26,267 ERROR:Failed to update user progress: relation "users" does not exist
+LINE 1: UPDATE users SET level = 5, coins = 250 WHERE id = 1
+               ^
+
+2024-10-01 20:23:33,533 ERROR:Failed to update user progress: relation "users" does not exist
+LINE 1: UPDATE users SET level = 6, coins = 352 WHERE id = 1
+               ^
+
+2024-10-01 20:23:36,545 ERROR:Failed to save progress: relation "users" does not exist
+LINE 1: UPDATE users SET level = 6, coins = 372 WHERE id = 1
+               ^
+
