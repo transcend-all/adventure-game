@@ -24,6 +24,7 @@ from data.kafka.producer import KafkaEventProducer
 
 # Initialize Pygame
 pygame.init()
+pygame.mixer.init()
 
 # Screen dimensions and FPS
 SCREEN_WIDTH = 800
@@ -78,6 +79,14 @@ class GameEngine:
             topic='game_events'
         )
 
+        try:
+            pygame.mixer.music.load('path_to_music_file.mp3')  # Replace with your music file path
+            pygame.mixer.music.set_volume(0.5)
+            pygame.mixer.music.play(-1)  # -1 loops the music indefinitely
+        except Exception as e:
+            logging.error(f"Failed to load or play background music: {e}")
+            print(f"Failed to load or play background music: {e}")
+
         # Initialize the logger (either CSV or PostgreSQL based on config)
         try:
             if USE_POSTGRESQL:
@@ -93,6 +102,12 @@ class GameEngine:
         self.running = True
         self.paused = False
         self.current_user = current_user  # Store current user
+        self.sound_on = True  # Variable to track sound state
+
+        # Load and play background music
+        pygame.mixer.music.load('sounds/background_music.mp3')
+        pygame.mixer.music.set_volume(0.5)
+        pygame.mixer.music.play(-1)  # -1 means the music loops indefinitely
 
     def handle_events(self):
         """Handle input events (keyboard, quitting)."""
@@ -102,10 +117,28 @@ class GameEngine:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_p:
                     self.paused = not self.paused  # Toggle pause
+                    if self.paused:
+                        pygame.mixer.music.pause()
+                    else:
+                        pygame.mixer.music.unpause()
                 if event.key == pygame.K_m:
                     # Simulate purchasing coins when the player presses 'M'
                     self.monetization_system.show_coin_packages()
                     self.monetization_system.purchase_coins('small', payment_method='usd')
+                if event.key == pygame.K_s:
+                    # Toggle sound on/off when 'S' is pressed
+                    self.toggle_sound()
+
+    def toggle_sound(self):
+        """Toggle the sound on or off."""
+        if self.sound_on:
+            pygame.mixer.music.set_volume(0)
+            self.sound_on = False
+            # Optionally notify other classes to mute their sound effects
+        else:
+            pygame.mixer.music.set_volume(0.5)
+            self.sound_on = True
+            # Optionally notify other classes to unmute their sound effects
 
     def on_level_complete(self, coins_collected):
         """Handle level completion: update level and coins, then save progress."""
@@ -181,7 +214,6 @@ class GameEngine:
         self.screen.fill((255, 255, 255))  # Clear the screen with a white background
         self.level_manager.render(self.screen)
         self.graphics.draw_player(self.screen, self.player)
-        # self.graphics.draw_enemy(self.screen, self.enemy)
 
         # Draw HUD (health bar, coins)
         self.hud.draw()
@@ -233,6 +265,7 @@ class GameEngine:
         self.close()          # Ensure proper cleanup of resources 
 
         # Quit the game
+        pygame.mixer.quit()
         pygame.quit()
         sys.exit()
 
@@ -472,9 +505,12 @@ class GameEngineWithAccounts:
         try:
             self.game_engine = GameEngine(self.current_user)
             self.state = 'game'
+            logging.info(f"Switched to game state for user {self.current_user['username']}.")
+            print(f"Switched to game state for user {self.current_user['username']}.")
         except Exception as e:
             logging.error(f"Failed to switch to game: {e}")
-            print("Error switching to game mode.")
+            print(f"Error switching to game mode: {e}")  # Print exception details
+
 
 # Entry point to start the game
 if __name__ == "__main__":
