@@ -5,12 +5,13 @@ import random
 from monetization.item import Coin
 
 class LevelManager:
-    def __init__(self, world, graphics):
+    def __init__(self, world, graphics, currency):
         self.world = world  # Reference to the World object
         self.level = 1  # Start at level 1
         self.enemies = []  # List of enemies on the current level
         self.coins = []
         self.graphics = graphics
+        self.currency = currency
 
         # Create initial enemies for level 1
         self.spawn_enemies()
@@ -66,11 +67,14 @@ class LevelManager:
             enemy.draw(screen, self.graphics)  # Pass the graphics object here
 
     def collect_coins(self, player):
-        """Check for coin collection by the player."""
-        for coin in self.coins[:]:  # Use a copy of the list to safely modify it
+        coins_collected = 0
+        for coin in self.coins[:]:
             if player.rect.colliderect(coin.rect):
-                coin.collect(player)
                 self.coins.remove(coin)
+                coins_collected += coin.value
+                self.currency.coins += coin.value
+                print(f"Collected a coin worth {coin.value} coins!")
+        return coins_collected
 
 
     
