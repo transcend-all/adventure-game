@@ -1,0 +1,2 @@
+spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.13:3.5.2,org.apache.kafka:kafka-clients:3.8.0 data/kafka/consumer.py
+spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.13:3.5.2,org.apache.kafka:kafka-clients:3.4.0 --jars $SPARK_HOME/jars/postgresql-42.7.0.jar data/kafka/consumer.py

@@ -20,6 +20,7 @@ from data_processing.data_pipeline import EventStream
 from data_processing.data_privacy import DataPrivacy
 from data_processing.csv_logger import CSVLogger
 from data_processing.psql_logger import PSQLLogger 
+from data.kafka.producer import KafkaEventProducer
 
 # Initialize Pygame
 pygame.init()
@@ -59,17 +60,23 @@ class GameEngine:
 
         # Initialize the game systems with user data
         self.currency = Currency()
-        self.currency.coins = current_user['coins']  # Initialize with user's coins
-        self.player = Player(current_user['username'], self.currency)
+        self.currency.coins = current_user.get('coins', 0)  # Initialize with user's coins
+        self.player = Player(current_user.get('username', 'Player'), self.currency)
         self.hud = HUD(self.screen, self.player, self.currency)
         self.world = World(SCREEN_WIDTH, SCREEN_HEIGHT)  # Corrected initialization
         self.combat_system = CombatSystem(self.player)
         self.graphics = Graphics()
         self.level_manager = LevelManager(self.world, self.graphics, self.currency)  # Passed currency
-        self.level_manager.current_level = current_user['level']  # Set current level
+        self.level_manager.current_level = current_user.get('level', 1)  # Set current level
         self.event_stream = EventStream()
         self.data_privacy = DataPrivacy()
         self.monetization_system = Monetization(self.currency)
+
+        # Initialize Kafka producer
+        self.kafka_producer = KafkaEventProducer(
+            bootstrap_servers=['localhost:9092'],  # Update if different
+            topic='game_events'
+        )
 
         # Initialize the logger (either CSV or PostgreSQL based on config)
         try:
@@ -127,23 +134,33 @@ class GameEngine:
         if not self.paused:
             self.player.handle_input(self.world)
             self.level_manager.update()
-            self.event_stream.send_event("player_moved", {"player_position": (self.player.rect.x, self.player.rect.y)})
+
+            # Capture player movement event
+            player_x, player_y = self.player.rect.x, self.player.rect.y
+            event = {
+                "type": "player_moved",
+                "data": {"player_position": [player_x, player_y]},
+                "timestamp": time.time()
+            }
+
+            # Send event to Kafka
+            self.kafka_producer.send_event(event)
+
+            # Existing event streaming and logging
+            self.event_stream.send_event("player_moved", {"player_position": (player_x, player_y)})
 
             # Collect coins
             coins_collected = self.level_manager.collect_coins(self.player)
             if coins_collected is not None and coins_collected > 0:
-                # Already added coins in LevelManager
                 print(f"Collected {coins_collected} coins!")
 
             # Log the player's movement
             if self.logger:
-                timestamp = time.time()  # Get the current timestamp
-                player_position = (self.player.rect.x, self.player.rect.y)
                 try:
                     self.logger.log_event(
                         "player_moved",
-                        {"timestamp": timestamp, "player_position": player_position}
-                    ) 
+                        {"timestamp": event["timestamp"], "player_position": [player_x, player_y]}
+                    )
                 except Exception as e:
                     logging.error(f"Failed to log event: {e}")
                     print("Error logging event.")
@@ -173,13 +190,20 @@ class GameEngine:
         pygame.display.flip()
 
     def close(self):
-        """Close any connections (e.g., to PostgreSQL)."""
+        """Close any connections (e.g., to PostgreSQL and Kafka)."""
         if USE_POSTGRESQL and self.logger:
             self.logger.close()
+        if self.kafka_producer:
+            self.kafka_producer.close()
 
     def save_progress(self):
         """Save the user's progress to the database."""
         try:
+            if not self.current_user:
+                raise ValueError("No current user to save progress for.")
+            if 'id' not in self.current_user:
+                raise KeyError("Current user does not have an 'id' key.")
+            print(f"Attempting to save progress for user: {self.current_user}")  # Debugging line
             import psycopg2  # Ensure psycopg2 is imported
             conn = psycopg2.connect(**db_config)
             cursor = conn.cursor()
@@ -189,8 +213,11 @@ class GameEngine:
             cursor.close()
             conn.close()
             print("Progress saved!")
+        except KeyError as ke:
+            logging.error(f"KeyError in save_progress: {ke}")
+            print("Error saving progress: Missing user information.")
         except Exception as e:
-            logging.error(f"Failed to save progress: {e}")
+            logging.error(f"Failed to save progress for user {self.current_user}: {e}")
             print("Error saving progress.")
 
     def run(self):
@@ -237,21 +264,25 @@ class LoginScreen:
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_TAB:
+            # Switch focus to the next input box
             self.input_boxes[self.active_box].active = False
             self.input_boxes[self.active_box].color = self.input_boxes[self.active_box].color_inactive
             self.active_box = (self.active_box + 1) % len(self.input_boxes)
             self.input_boxes[self.active_box].active = True
             self.input_boxes[self.active_box].color = self.input_boxes[self.active_box].color_active
         else:
+            # Check if Back Button is clicked
             if self.back_button.is_clicked(event):
                 self.game.state = 'start'  # Navigate back to Start Screen
-                return
-             
+                return  # Exit the method early to prevent further processing
+
+            # Pass the event to the active input box
             result = self.input_boxes[self.active_box].handle_event(event)
             if result == 'submit':
                 # Attempt to login
                 user = accounts.login_user(self.username_box.text, self.password_box.text)
                 if user:
+                    print(f"Login successful for user: {user}")  # Debugging line
                     self.game.current_user = user
                     self.game.switch_to_game()
                 else:
@@ -302,7 +333,6 @@ class RegisterScreen:
             bg_color=(220, 20, 60),  # Crimson color
             text_color=(255, 255, 255)  # White text
         )
-
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN and event.key == pygame.K_TAB:
