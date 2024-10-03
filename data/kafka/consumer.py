@@ -1,12 +1,13 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, from_json
-from pyspark.sql.types import StructType, StructField, StringType, TimestampType
+from pyspark.sql.functions import col, from_json, udf
+from pyspark.sql.types import StructType, StructField, StringType, TimestampType, ArrayType, IntegerType, DoubleType
 
 json_schema = StructType([
-    StructField("event_id", StringType(), True),
-    StructField("event_type", StringType(), True),
-    StructField("timestamp", TimestampType(), True),
-    StructField("player_id", StringType(), True)
+    StructField("type", StringType(), True),
+    StructField("data", StructType([
+        StructField("player_position", ArrayType(IntegerType(), True))
+    ]), True),
+    StructField("timestamp", DoubleType(), True),
 ])
 
 def main():
@@ -20,6 +21,10 @@ def main():
     # Set log level to INFO for more detailed logging
     spark.sparkContext.setLogLevel("WARN")
 
+    # def hex_to_string(hex_value):
+    #     return bytes.fromhex(hex_value).decode('utf-8')
+
+    # hex_to_string_udf = udf(hex_to_string, StringType())
  
     kafka_df = spark.readStream \
         .format("kafka") \
@@ -29,16 +34,31 @@ def main():
         .option("failOnDataLoss", "false") \
         .load()
 
+    decoded_df = kafka_df.select(
+        col("value").cast(StringType())
+    )
 
-    parsed_df = kafka_df.select(
-        from_json(col("value").cast("string"), json_schema).alias("data")
-    ).select("data.*")
+    parsed_df = decoded_df.select(
+        from_json(col("value"), json_schema).alias("parsed_data")
+    ).select("parsed_data.*")
 
+    flattened_df = parsed_df.select(
+        col("type").alias("event_type"),
+        col("data.player_position").getItem(0).alias("player_x"),
+        col("data.player_position").getItem(1).alias("player_y"),
+        col("timestamp").cast(TimestampType())
+    )
 
-    query = parsed_df.writeStream \
-        .foreachBatch(print_parsed_data) \
+    query = flattened_df.writeStream \
+        .foreachBatch(print_kafka_message) \
+        .foreachBatch(write_to_postgres) \
         .outputMode("append") \
         .start()
+
+    # query = parsed_df.writeStream \
+    #     .foreachBatch(print_parsed_data) \
+    #     .outputMode("append") \
+    #     .start()
 
     query.awaitTermination()
 
@@ -50,7 +70,7 @@ def main():
 
 def print_kafka_message(df, epoch_id):
     df.show(truncate=False)
-    print(df.select("event_id").take(1)[0]["event_type"].decode("utf-8"))
+    print(df.select("event_type").take(1)[0]["event_type"])
 
 def print_parsed_data(df, epoch_id):
     print(f"Parsed Batch ID: {epoch_id}")
@@ -66,6 +86,9 @@ def write_to_postgres(batch_df, batch_id):
         "password": "adventure_game",
         "driver": "org.postgresql.Driver"
     }
+    batch_df.write \
+        .jdbc(url=url, table="game_events", mode="append", properties=properties)
+    print(f"Batch {batch_id} written to PostgreSQL.")
 
 if __name__ == "__main__":
     main()
