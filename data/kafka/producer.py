@@ -2,9 +2,26 @@ from kafka import KafkaProducer
 import json
 import logging
 import sys
+import requests
+
+# def get_ngrok_forwarding():
+#     try:
+#         response = requests.get('http://127.0.0.1:4040/api/tunnels')
+#         data = response.json()
+#         for tunnel in data['tunnels']:
+#             if tunnel['proto'] == 'tcp':
+#                 return tunnel['public_url'].replace('tcp://', '')
+#     except Exception as e:
+#         logging.error(f"Error fetching ngrok tunnel info: {e}")
+#     return None
+
+# # set bootstrap servers to ngrok forwarding, use in the future if the cluster is restarted
+# bootstrap_servers = get_ngrok_forwarding()
+
+
 
 class KafkaEventProducer:
-    def __init__(self, bootstrap_servers=['localhost:9092'], topic='game_events'):
+    def __init__(self, bootstrap_servers=['4.tcp.us-cal-1.ngrok.io:17356'], topic='game_events'):
         try:
             self.producer = KafkaProducer(
                 bootstrap_servers=bootstrap_servers,
