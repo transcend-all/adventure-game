@@ -1,6 +1,7 @@
 # player.py
 from shutil import move
 import pygame
+from database_manager import DatabaseManager
 
 # Constants for player settings
 PLAYER_COLOR = (0, 0, 0)  # Black for the player
@@ -15,7 +16,8 @@ class Player:
         self.speed = PLAYER_SPEED  # Movement speed
         self.health = 100  # Player's health
         self.attack_power = 10  # Player's base attack power
-        self.inventory = []  # Player inventory to store items
+        self.defense_power = 10
+        # self.inventory = []  # Player inventory to store items
         self.currency = currency
         self.move_sound = pygame.mixer.Sound('sounds/player_move.wav')
         self.move_sound.set_volume(0.3)
@@ -25,6 +27,7 @@ class Player:
         self.damage_sound.set_volume(0.5)
         self.pickup_sound = pygame.mixer.Sound('sounds/pickup_item.wav')
         self.pickup_sound.set_volume(0.5)
+        self.db_manager = DatabaseManager(db_mode='postgres')  # or 'dynamodb'
 
     def handle_input(self, world):
             """Handles player movement based on keyboard input and checks for collisions with the world."""
@@ -61,11 +64,11 @@ class Player:
         if self.health <= 0:
             print(f"{self.name} has died!")
 
-    def add_to_inventory(self, item):
-        """Adds an item to the player's inventory."""
-        self.inventory.append(item)
-        print(f"{item} added to inventory!")
+    # def add_to_inventory(self, item):
+    #     """Adds an item to the player's inventory."""
+    #     self.inventory.append(item)
+    #     print(f"{item} added to inventory!")
 
-    def display_inventory(self):
-        """Displays the player's inventory (for now, print to console)."""
-        print(f"Inventory: {self.inventory}")
+    # def display_inventory(self):
+    #     """Displays the player's inventory (for now, print to console)."""
+    #     print(f"Inventory: {self.inventory}")
