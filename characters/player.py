@@ -1,7 +1,6 @@
 # player.py
 from shutil import move
 import pygame
-from database_manager import DatabaseManager
 
 # Constants for player settings
 PLAYER_COLOR = (0, 0, 0)  # Black for the player
@@ -10,7 +9,8 @@ PLAYER_HEIGHT = 50
 PLAYER_SPEED = 5
 
 class Player:
-    def __init__(self, name, currency):
+    def __init__(self, name, currency, id=None):
+        self.id = id  # Make sure this line is present
         self.name = name
         self.rect = pygame.Rect(100, 100, PLAYER_WIDTH, PLAYER_HEIGHT)  # Player's rectangle (x, y, width, height)
         self.speed = PLAYER_SPEED  # Movement speed
@@ -27,7 +27,13 @@ class Player:
         self.damage_sound.set_volume(0.5)
         self.pickup_sound = pygame.mixer.Sound('sounds/pickup_item.wav')
         self.pickup_sound.set_volume(0.5)
+        
+        # Lazy import of DatabaseManager
+        from database_manager import DatabaseManager
         self.db_manager = DatabaseManager(db_mode='postgres')  # or 'dynamodb'
+
+    def __str__(self):
+        return f"Player(id={self.id}, name={self.name}, currency={self.currency})"
 
     def handle_input(self, world):
             """Handles player movement based on keyboard input and checks for collisions with the world."""
