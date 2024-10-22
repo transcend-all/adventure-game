@@ -29,6 +29,8 @@ from data_processing.data_privacy import DataPrivacy
 from data_processing.csv_logger import CSVLogger
 from data_processing.psql_logger import PSQLLogger 
 from data.kafka.producer import KafkaEventProducer
+from monetization.buy_coins_screen import BuyCoinsScreen
+from monetization.credit_card_info import CreditCardInfo
 
 # Initialize Pygame
 pygame.init()
@@ -139,10 +141,12 @@ class GameEngine:
     def __init__(self, screen, current_user, bootstrap_servers):
         print("GameEngine __init__ started")
         self.screen = screen
+        # Initialize font
+        self.font = pygame.font.Font(None, 32)  # Add this line
         # Initialize the game systems with user data
         self.currency = Currency()
         self.currency.coins = current_user.get('coins', 0)  # Initialize with user's coins
-        self.player = Player(current_user.get('username', 'Player'), self.currency)
+        self.player = Player(current_user.get('username', 'Player'), self.currency, current_user.get('id', None))
         self.hud = HUD(self.screen, self.player, self.currency)
         self.world = World(SCREEN_WIDTH, SCREEN_HEIGHT)  # Corrected initialization
         self.combat_system = CombatSystem(self.player)
@@ -160,6 +164,10 @@ class GameEngine:
         self.inventory_screen = InventoryScreen(self.screen, self.inventory)
         self.inventory_open = False
         self.defeated_enemies = 0
+        self.buy_coins_button = Button(650, 10, 140, 40, text="Buy Coins", font=self.font)
+        self.db_manager = DatabaseManager(db_mode='postgres')  # or 'dynamodb'
+        self.buy_coins_screen = BuyCoinsScreen(self.screen, self.player, self.db_manager)
+        self.credit_card_info = CreditCardInfo(self.db_manager)
 
         if bootstrap_servers:
             try:
@@ -199,6 +207,10 @@ class GameEngine:
         self.current_user = current_user  # Store current user
         self.sound_on = True  # Variable to track sound state
         print("GameEngine __init__ completed")
+
+    def __del__(self):
+        if self.db_manager.db_mode == 'postgres':
+            self.db_manager.close_postgres_connection()
 
     def save_progress(self):
         """Save the user's progress to the PostgreSQL database using the username."""
@@ -249,25 +261,8 @@ class GameEngine:
             elif result == "open_inventory":
                 self.inventory_open = True
 
-        # if self.store_open:
-        #     # Handle store events when the store is open
-        #     result = self.store_screen.handle_event(event)
-        #     if result == "close_store":
-        #         self.store_open = False  # Close the store
-        # else:
-        #     # Handle regular game events
-        #     result = self.hud.handle_event(event, self.open_store, self.open_inventory)  # Check if "Store" button is clicked
-        #     if result == "open_store":
-        #         self.store_open = True  # Open the store
-
-        # if self.inventory_open:
-        #     result = self.inventory_screen.handle_event(event)
-        #     if result == "close_inventory":
-        #         self.inventory_open = False
-        # else:
-        #     result = self.hud.handle_event(event, self.open_store, self.open_inventory)
-        #     if result == "open_inventory":
-        #         self.inventory_open = True 
+        if self.buy_coins_button.is_clicked(event):
+            self.show_buy_coins_screen()
 
     def open_store(self):
         print("opening store")
@@ -379,6 +374,9 @@ class GameEngine:
             # Draw HUD (health bar, coins)
             self.hud.draw()
 
+            # Draw the Buy Coins button
+            self.buy_coins_button.draw(self.screen)
+
             # Update the display
             pygame.display.flip()
 
@@ -401,6 +399,19 @@ class GameEngine:
                     pygame.quit()
                     sys.exit()
             self.update_game_state()  # Example helper method to simplify event loop
+
+    def show_buy_coins_screen(self):
+        buy_coins_open = True
+        while buy_coins_open:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return
+                
+                result = self.buy_coins_screen.handle_event(event)
+                if result == "close_buy_coins":
+                    buy_coins_open = False
+
+            self.buy_coins_screen.draw()
 
 
 # Additional Classes for Account Screens
@@ -582,9 +593,15 @@ class StartScreen:
 class GameEngineWithAccounts:
     def __init__(self):
         # Initial state
+        self.player = None
         self.state = 'start'  # start, login, register, game
         self.current_user = None
         self.bootstrap_servers = determine_bootstrap_servers()
+        self.current_session_id = None
+        self.session_data = {
+            'enemies_killed': 0,
+            'coins_collected': 0
+        }
 
         # Create the game window
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -597,6 +614,8 @@ class GameEngineWithAccounts:
 
         # Initialize GameEngine as None; will be created after login
         self.game_engine = None
+        self.db_manager = DatabaseManager(db_mode='postgres')
+        self.db_manager.ensure_tables_exist()  # Explicitly call this method
 
     def update_game_state(self):
         """Update and render the game based on the current state."""
@@ -617,11 +636,15 @@ class GameEngineWithAccounts:
 
     def run(self):
         """Main loop handling different states."""
-        while True:
+        running = True
+        while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     if self.state == 'game' and self.game_engine:
                         self.game_engine.save_progress()  # No arguments needed
+                        print("saved progress")
+                        self.logout()
+                        print("logged out")
                         self.game_engine.close()
                     pygame.quit()
                     sys.exit()
@@ -641,52 +664,10 @@ class GameEngineWithAccounts:
             # Handle rendering and updates
             self.update_game_state()
 
-    # def run(self):
-    #     """Main loop handling different states."""
-    #     while True:
-    #         for event in pygame.event.get():
-    #             if event.type == pygame.QUIT:
-    #                 if self.state == 'game' and self.game_engine:
-    #                     self.game_engine.save_progress()
-    #                     self.game_engine.close()
-    #                 pygame.quit()
-    #                 sys.exit()
-    #             elif event.type == pygame.USEREVENT:
-    #                 # Timer event to switch to login screen after successful registration
-    #                 if self.state == 'register':
-    #                     self.state = 'login'
-    #             else:
-    #                 if self.state == 'start':
-    #                     self.start_screen.handle_event(event)
-    #                 elif self.state == 'login':
-    #                     self.login_screen.handle_event(event)
-    #                 elif self.state == 'register':
-    #                     self.register_screen.handle_event(event)
-    #                 elif self.state == 'game' and self.game_engine:
-    #                     self.game_engine.handle_event(event)  # Pass individual event
-
-    #         print(f"Current state: {self.state}")  # Debug print
-
-    #         if self.state == 'start':
-    #             self.start_screen.draw()
-    #         elif self.state == 'login':
-    #             self.login_screen.draw()
-    #         elif self.state == 'register':
-    #             self.register_screen.draw()
-    #         elif self.state == 'game' and self.game_engine:
-    #             try:
-    #                 print("Updating game engine...")  # Debug print
-    #                 self.game_engine.update()
-    #                 print("Rendering game engine...")  # Debug print
-    #                 self.game_engine.render()
-    #                 print("Game engine update and render complete.")  # Debug print
-    #             except Exception as e:
-    #                 logging.error(f"Error in game loop: {e}")
-    #                 print(f"Error in game loop: {e}")
-    #                 traceback.print_exc()
-
-    #         # Cap the frame rate
-    #         clock.tick(FPS)
+        # print("Game loop ended, calling logout")
+        # self.logout()
+        # pygame.quit()
+        # sys.exit()
 
     def switch_to_game(self):
         """Initialize the GameEngine with the current user and switch to game state."""
@@ -694,6 +675,12 @@ class GameEngineWithAccounts:
             print("Initializing GameEngine...")
             self.game_engine = GameEngine(self.screen, self.current_user, self.bootstrap_servers)
             print("GameEngine initialized.")
+
+            self.player = Player(name=self.current_user['username'], currency=self.current_user['coins'], id=self.current_user['id'])
+            self.current_session_id = self.db_manager.start_session(self.current_user['id'], self.current_user['level'])
+            print(f"Player after login: {self.player}")
+            print("current session id", self.current_session_id)
+
             self.state = 'game'
             logging.info(f"Switched to game state for user {self.current_user['username']}.")
             print(f"Switched to game state for user {self.current_user['username']}.")
@@ -702,8 +689,74 @@ class GameEngineWithAccounts:
             print(f"Error switching to game mode: {e}")
             traceback.print_exc()  # This will print the full stack trace
 
+    # def login(self, username, password):
+    #     user_data = self.db_manager.login_user(username, password)
+    #     if user_data:
+    #         self.player = Player(name=user_data['username'], currency=user_data['coins'], id=user_data['id'])
+    #         self.current_session_id = self.db_manager.start_session(self.player.id, self.player.level)
+    #         print(f"Player after login: {self.player}")
+    #         print("current session id", self.current_session_id)
+    #         self.state = 'game'  # Change state to 'game' after successful login
+    #         return True
+    #     return False
+
+    def logout(self):
+        print("just before end session")
+        print(self.current_session_id)
+        print(self.current_user)
+        
+        # Example values; replace with actual data as needed
+        enemies_killed_increment = self.current_user.get('enemies_killed', 0)
+        coins_collected_increment = self.current_user.get('coins_collected', 0)
+        new_item_purchased = self.current_user.get('new_item_purchased')  # Can be None
+        new_item_used = self.current_user.get('new_item_used')  # Can be None
+        
+        success = self.db_manager.end_session(
+            session_id=self.current_session_id,
+            end_level=self.current_user['level'],
+            enemies_killed_increment=enemies_killed_increment,
+            coins_collected_increment=coins_collected_increment,
+            new_item_purchased=new_item_purchased,
+            new_item_used=new_item_used
+        )
+        
+        if success:
+            self.current_session_id = None
+        else:
+            print("Failed to end session properly.")
+        
+        # ... other logout logic ...
+
+
+    def create_account(self, username, password):
+        user_data = self.db_manager.create_user(username, password)
+        if user_data:
+            self.player = Player(name=user_data['username'], currency=user_data['coins'], id=user_data['id'])
+            print(f"Created player: {self.player}")  # Debug print
+            return True
+        return False
+
+    def update_session_data(self, enemies_killed=0, coins_collected=0, item_purchased=None, item_used=None):
+        if self.current_session_id:
+            self.session_data['enemies_killed'] += enemies_killed
+            self.session_data['coins_collected'] += coins_collected
+            self.db_manager.update_session_data(
+                self.current_session_id,
+                enemies_killed,
+                coins_collected,
+                item_purchased,
+                item_used
+            )
+
+    def add_credit_card(self):
+        if self.current_session_id:
+            self.db_manager.add_credit_card_to_session(self.current_session_id)
 
 # Entry point to start the game
 if __name__ == "__main__":
-    game_with_accounts = GameEngineWithAccounts()
-    game_with_accounts.run()
+    try:
+        game_with_accounts = GameEngineWithAccounts()
+        game_with_accounts.run()
+    except Exception as e:
+        print(f"Fatal error: {e}")
+        # Optionally, you might want to log this error or perform cleanup
